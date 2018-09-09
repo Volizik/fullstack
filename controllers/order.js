@@ -8,7 +8,7 @@ module.exports.getAll = async (req, res) => {
 
     // Дата старта
     if (req.query.start) {
-        query.date = {$gtr: req.query.start} // Больше или равно
+        query.date = {$gte: req.query.start} // Больше или равно
     }
     if (req.query.end) {
         if (!query.date) {
