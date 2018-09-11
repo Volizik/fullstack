@@ -4,7 +4,7 @@ const moment = require('moment');
 
 module.exports.overview = async (req, res) => {
     try {
-        const allOrders = await Order.find({user: req.user.id}).sort(1);
+        const allOrders = await Order.find({user: req.user.id}).sort({date: 1});
         const ordersMap = getOrdersMap(allOrders);
         const yesterdayOrders = ordersMap[moment().add(-1, 'd').format('DD.MM.YYYY')] || [];
 
@@ -33,17 +33,17 @@ module.exports.overview = async (req, res) => {
         const compareNumber = (yesterdayOrdersNumber - ordersPerDay).toFixed(2);
 
         res.status(200).json({
-            gain: {
-                percent: Math.abs(+gainPercent),
-                compare: Math.abs(+compareGain),
-                yesterday: +yesterdayGain,
-                isHigher: +gainPercent > 0
-            },
             orders: {
                 percent: Math.abs(+ordersPercent),
                 compare: Math.abs(+compareNumber),
                 yesterday: +yesterdayOrdersNumber,
                 isHigher: +ordersPercent > 0
+            },
+            gain: {
+                percent: Math.abs(+gainPercent),
+                compare: Math.abs(+compareGain),
+                yesterday: +yesterdayGain,
+                isHigher: +gainPercent > 0
             }
         })
     } catch (e) {
@@ -51,10 +51,23 @@ module.exports.overview = async (req, res) => {
     }
 };
 
-module.exports.analytics = (req, res) => {
-    res.status(200).json({
-        analytics: 'analytics from controller'
-    })
+module.exports.analytics = async (req, res) => {
+    try {
+        const allOrders = await Order.find({user: req.user.id}).sort({date: 1});
+        const ordersMap = getOrdersMap(allOrders);
+        const average = +(calculatePrice(allOrders) / Object.keys(ordersMap).length).toFixed(2);
+
+        const chart = Object.keys(ordersMap).map(label => {
+            const gain = calculatePrice(ordersMap[label]);
+            const order = ordersMap[label].length;
+            return {label, order, gain};
+        });
+
+        res.status(200).json({average, chart})
+
+    } catch (e) {
+        errorHandler(e, res)
+    }
 };
 
 function getOrdersMap(orders = []) {
